@@ -1,0 +1,175 @@
+:root {
+    --primary-color: #005f73; /* Dark Teal */
+    --secondary-color: #0a9396; /* Lighter Teal */
+    --accent-color: #94d2bd; /* Light Mint Green */
+    --background-color: #e0f2f7; /* Very Light Blue */
+    --text-color: #333;
+    --card-background: #ffffff;
+    --border-color: #ccc;
+    --error-color: #dc3545;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2.2rem;
+}
+
+header p {
+    margin: 0.5rem 0 0;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+main {
+    flex-grow: 1;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#loading-message {
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+    text-align: center;
+    padding: 20px;
+}
+
+#error-message {
+    color: var(--error-color);
+    background-color: #f8d7da;
+    border: 1px solid var(--error-color);
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 5px;
+    text-align: center;
+    max-width: 600px;
+}
+
+.error-hidden {
+    display: none;
+}
+
+#dashboard-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+.day-card {
+    background-color: var(--card-background);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease-in-out;
+}
+
+.day-card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 10px;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.card-section {
+    margin-bottom: 15px;
+}
+
+.card-section h3 {
+    color: var(--secondary-color);
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 5px;
+}
+
+.card-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.card-section ul li {
+    margin-bottom: 5px;
+}
+
+.tide-info {
+    font-weight: bold;
+}
+
+.moon-phase {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.moon-phase .emoji {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.marine-forecast-text {
+    font-size: 0.95rem;
+    white-space: pre-wrap; /* Preserves line breaks from API text */
+}
+
+footer {
+    background-color: var(--primary-color);
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    margin-top: auto; /* Pushes footer to the bottom */
+    font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 1.8rem;
+    }
+
+    .day-card {
+        padding: 15px;
+    }
+
+    #dashboard-container {
+        grid-template-columns: 1fr; /* Stack cards on small screens */
+    }
+}

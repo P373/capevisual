@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Megansett Harbor Marine Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛵</text></svg>" />
+</head>
+<body>
+    <header>
+        <h1>Megansett Harbor Marine Dashboard</h1>
+        <p>Real-time Tides, Sun/Moon Data & Marine Forecast</p>
+    </header>
+
+    <main id="dashboard-container">
+        <p id="loading-message">Loading marine data...</p>
+        <div id="error-message" class="error-hidden"></div>
+        </main>
+
+    <footer>
+        <p>&copy; <span id="current-year"></span> Megansett Marine Dashboard. Data from NOAA.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
