@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Megansett Harbor Marine Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛵</text></svg>" />
+</head>
+<body>
+    <header>
+        <h1>Megansett Harbor Marine Dashboard</h1>
+        <p>Real-time Tides, Sun/Moon Data & Marine Forecast</p>
+    </header>
+
+    <main>
+        <p id="loading-message">Loading marine data...</p>
+        <div id="error-message" class="error-hidden"></div>
+
+        <div id="marine-forecast-box" class="card-section hidden">
+            <h3>Detailed Marine Forecast for Buzzards Bay (ANZ234)</h3>
+            <p id="detailed-marine-forecast-text" class="marine-forecast-text"></p>
+            <p style="font-size:0.8em; color:#888;">(Note: This detailed forecast is a direct scrape from weather.gov, which can be unreliable if their page structure changes.)</p>
+        </div>
+
+        <div id="dashboard-container">
+            </div>
+    </main>
+
+    <footer>
+        <p>&copy; <span id="current-year"></span> Megansett Marine Dashboard. Data from NOAA.</p>
+    </footer>
+
+    <script src="suncalc.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
