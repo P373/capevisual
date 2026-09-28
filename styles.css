@@ -249,7 +249,7 @@ a { color: var(--sea); }
 .wind-chart .grid-label { font-size: 8px; fill: var(--muted); }
 .gust-area { fill: var(--gust); }
 .wind-line { fill: none; stroke: var(--wind); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.wind-arrow { fill: var(--muted); }
+.wind-arrow { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .wind-sum { font-size: 0.84rem; margin-top: 4px; }
 
 /* currents */
@@ -262,3 +262,46 @@ a { color: var(--sea); }
 .cur-list li.past { opacity: 0.45; }
 .cur-t { font-weight: 600; margin-right: 4px; }
 .currents .fine { margin: 6px 0 0; }
+
+/* sea state (broken out of the marine forecast text) */
+.sea-state { display: flex; gap: 12px; align-items: stretch; margin: 6px 0; padding: 8px 10px; background: var(--sea-soft); border-radius: 10px; }
+.seas { display: flex; flex-direction: column; justify-content: center; min-width: 4.2em; }
+.seas-num { font-size: 1.25rem; font-weight: 700; color: var(--sea); line-height: 1.1; white-space: nowrap; }
+.seas-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.waves { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 1px solid var(--line); display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.waves li { display: flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.waves .arrow { color: var(--sea); }
+.w-dir { font-weight: 700; min-width: 1.6em; }
+.w-ht { font-weight: 600; }
+.w-per { color: var(--muted); }
+.w-kind { color: var(--muted); font-size: 0.72rem; font-style: italic; }
+
+/* data source map */
+.sources { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin: 0 0 18px; scroll-margin-top: 80px; }
+.sources h2 { margin: 0 0 12px; font-size: 1.2rem; }
+.source-map { height: 440px; border-radius: 10px; z-index: 0; }
+.pin span, .pin-dot {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  color: #fff; font-weight: 700; font-size: 12px;
+  border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.pin-dot { flex: none; width: 22px; height: 22px; font-size: 11px; box-shadow: none; border-color: var(--card); }
+.pin-dot.zone { background: repeating-linear-gradient(45deg, rgba(232, 89, 12, 0.55) 0 2px, transparent 2px 6px); border: 2px solid #e8590c; border-radius: 4px; }
+.source-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px 18px; font-size: 0.88rem; }
+.source-list li { display: flex; gap: 10px; align-items: flex-start; }
+.source-list .muted { font-size: 0.8rem; }
+@media (max-width: 640px) { .source-map { height: 340px; } }
+
+.cur-key { font-size: 0.74rem; color: var(--muted); margin-top: 1px; }
+.cur-key .arrow, .cur-list .arrow { vertical-align: -1px; }
+
+/* footer: currents explainer */
+.currents-explained { margin: 14px 0; scroll-margin-top: 80px; }
+.currents-explained h3 { font-size: 0.85rem; margin: 0 0 6px; color: var(--ink); }
+.currents-explained table { border-collapse: collapse; font-size: 0.8rem; }
+.currents-explained th, .currents-explained td { text-align: left; padding: 4px 14px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.currents-explained thead th { font-weight: 600; color: var(--muted); }
+.currents-explained tbody th { color: var(--ink); font-weight: 600; }
+.currents-explained p { max-width: 70ch; margin: 6px 0 0; }
+@media (max-width: 640px) { .currents-explained table { display: block; overflow-x: auto; } }

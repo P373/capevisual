@@ -11,8 +11,9 @@ const CONFIG = {
   buoy: 'BUZM3',            // Buzzards Bay tower (NDBC), via the NWS observations API
   waterLevelStation: '8447930', // Woods Hole: observed vs. predicted water level
   currentStations: [
-    { id: 'COD0904', bin: 15, name: 'Cape Cod Canal · Railroad Bridge', flood: 'E', ebb: 'W' },
-    { id: 'COD0911', bin: 1, name: 'Woods Hole · The Strait', flood: 'E', ebb: 'W' },
+    // Flow directions come from NOAA; these just say where each direction leads.
+    { id: 'COD0904', bin: 15, name: 'Cape Cod Canal · Railroad Bridge', floodTo: 'Cape Cod Bay', ebbTo: 'Buzzards Bay' },
+    { id: 'COD0911', bin: 1, name: 'Woods Hole · The Strait', floodTo: 'Vineyard Sound', ebbTo: 'Buzzards Bay' },
   ],
   days: 7,
   refreshMinutes: 30,
@@ -92,7 +93,12 @@ async function loadWeather() {
     const key = p.startTime.slice(0, 10); // startTime carries the local offset
     (byDay[key] ||= {})[p.isDaytime ? 'day' : 'night'] = p;
   }
-  return { byDay, now: hourly?.properties.periods[0] || null, wind: grid ? hourlyWind(grid.properties) : null };
+  return {
+    byDay,
+    now: hourly?.properties.periods[0] || null,
+    wind: grid ? hourlyWind(grid.properties) : null,
+    cell: daily.geometry || null, // the forecast grid square, shown on the map
+  };
 }
 
 // Convert an NWS quantity to knots based on its unit code.
@@ -218,7 +224,8 @@ async function loadCurrents(todayKey) {
       key: c.Time.slice(0, 10), min: +c.Time.slice(11, 13) * 60 + +c.Time.slice(14, 16),
       type: c.Type, v: Math.abs(c.Velocity_Major),
     }));
-    return { ...s, events };
+    const first = data.current_predictions.cp[0] || {};
+    return { ...s, events, floodDir: first.meanFloodDir, ebbDir: first.meanEbbDir };
   }));
 }
 
@@ -451,7 +458,7 @@ const compass = (deg) => (deg == null ? '' : COMPASS[Math.round(deg / 22.5) % 16
 
 // Arrow pointing the way the wind blows (from `deg`, toward deg + 180).
 const windArrow = (deg, size = 14) => deg == null ? '' :
-  `<svg class="arrow" width="${size}" height="${size}" viewBox="0 0 16 16" style="transform:rotate(${deg + 180}deg)" aria-hidden="true"><path d="M8 1l5 12-5-3-5 3z" fill="currentColor"/></svg>`;
+  `<svg class="arrow" width="${size}" height="${size}" viewBox="0 0 16 16" style="transform:rotate(${deg + 180}deg)" aria-hidden="true"><path d="M8 14.5V2.5M3.5 7L8 2.5 12.5 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 const shortClock = (min) => fmtClock(min).replace(':00', '').replace(' AM', 'a').replace(' PM', 'p');
 
@@ -557,7 +564,7 @@ function windChart(key, wind, scaleMax, isToday) {
   const grid = [10, 20, 30, 40].filter((v) => v < scaleMax).map((v) =>
     `<line x1="0" x2="${W}" y1="${y(v)}" y2="${y(v)}" class="grid"/><text x="2" y="${y(v) - 2}" class="grid-label">${v}</text>`).join('');
   const arrows = inDay.filter((p) => minutesOfDay(new Date(p.t)) % 180 === 0 && p.dir != null).map((p) =>
-    `<g transform="translate(${x(p.t) + 6} 9) rotate(${p.dir + 180})"><path d="M0,-6 L4,4 L0,2 L-4,4Z" class="wind-arrow"/></g>`).join('');
+    `<g transform="translate(${x(p.t) + 6} 9) rotate(${p.dir + 180})"><path d="M0,5V-5M-3.5,-1.5L0,-5 3.5,-1.5" class="wind-arrow"/></g>`).join('');
   const nowLine = isToday ? `<line x1="${x(Date.now())}" x2="${x(Date.now())}" y1="0" y2="${H}" class="now-line"/>` : '';
 
   const daytime = inDay.filter((p) => { const m = minutesOfDay(new Date(p.t)); return m >= 360 && m <= 1200; });
@@ -578,12 +585,56 @@ function windChart(key, wind, scaleMax, isToday) {
 function marinePanel(periods, marine, currentsHtml) {
   const forecast = !marine ? '<p class="muted">Marine forecast unavailable.</p>'
     : !periods.length ? '<p class="muted">Beyond the marine forecast range.</p>'
-    : periods.map((p) => `<div class="marine-period">
+    : periods.map((p) => {
+      const sea = parseSeaState(p.text);
+      return `<div class="marine-period">
       <div class="marine-label">${esc(titleCase(p.label))}</div>
-      <p>${highlightMarine(esc(p.text))}</p>
-    </div>`).join('');
+      ${sea.seas || sea.waves.length ? seaStateBlock(sea) : ''}
+      <p>${highlightMarine(esc(sea.rest))}</p>
+    </div>`;
+    }).join('');
   return forecast + currentsHtml;
 }
+
+// Pull "Seas ..." and "Wave Detail: ..." out of the forecast text into structured values.
+function parseSeaState(text) {
+  const seasM = text.match(/Seas ([^.]*?)\.\s*/i);
+  const waveM = text.match(/Wave Detail:\s*([^.]*?)\.\s*/i);
+  const waves = [];
+  if (waveM) {
+    for (const m of waveM[1].matchAll(/\b([NSEW]{1,3}) (\d+(?:\.\d+)?) (?:ft|foot|feet) at (\d+) seconds?/gi)) {
+      waves.push({ dir: m[1].toUpperCase(), ft: +m[2], sec: +m[3] });
+    }
+  }
+  let rest = text;
+  if (waveM && waves.length) rest = rest.replace(waveM[0], '');
+  if (seasM) rest = rest.replace(seasM[0], '');
+  return { seas: seasM ? shortSeas(seasM[1]) : null, waves, rest: rest.trim() };
+}
+
+const shortSeas = (s) => s
+  .replace(/^(\d+) to (\d+) (ft|feet)$/i, '$1–$2 ft')
+  .replace(/^around (\d+) (ft|feet|foot)$/i, '~$1 ft')
+  .replace(/^(\d+) (foot|ft|feet) or less$/i, '≤ $1 ft')
+  .replace(/^less than (\d+) (foot|ft|feet)$/i, '< $1 ft');
+
+// Short-period waves feel like chop; long-period waves are rolling swell.
+const waveKind = (sec) => (sec <= 4 ? 'chop' : sec >= 8 ? 'swell' : '');
+
+function seaStateBlock({ seas, waves }) {
+  return `<div class="sea-state">
+    ${seas ? `<div class="seas"><span class="seas-num">${esc(seas)}</span><span class="seas-lbl">seas</span></div>` : ''}
+    ${waves.length ? `<ul class="waves">${waves.map((w) => `<li title="Waves from the ${esc(w.dir)}, ${w.ft} ft every ${w.sec} seconds">
+      ${windArrow(COMPASS.indexOf(w.dir) * 22.5, 13)}
+      <span class="w-dir">${esc(w.dir)}</span>
+      <span class="w-ht">${w.ft} ft</span>
+      <span class="w-per">${w.sec}s</span>
+      ${waveKind(w.sec) ? `<span class="w-kind">${waveKind(w.sec)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+  </div>`;
+}
+
+// Arrow pointing the way the water flows (current directions are "toward", unlike wind).
+const flowArrow = (deg, size = 11) => windArrow(deg == null ? null : deg - 180, size);
 
 function currentsBlock(i, currents, isToday) {
   if (!currents) return '';
@@ -591,9 +642,24 @@ function currentsBlock(i, currents, isToday) {
   return `<div class="currents"><div class="sub-h">Currents</div>${currents.map((s) => {
     const ev = s.events.filter((e) => e.dayIndex === i);
     return `<div class="cur-station"><div class="cur-name">${esc(s.name)}</div>
-      <ul class="cur-list">${ev.map((e) => `<li class="${esc(e.type)}${e.min < nowMin ? ' past' : ''}"><span class="cur-t">${shortClock(e.min)}</span>${
-        e.type === 'slack' ? 'slack' : `${e.type === 'flood' ? '→' : '←'} ${e.type === 'flood' ? s.flood : s.ebb} ${e.v.toFixed(1)}`}</li>`).join('')}</ul></div>`;
-  }).join('')}<p class="fine">Max current in knots · → flood / ← ebb</p></div>`;
+      <div class="cur-key">${flowArrow(s.floodDir)} ${compass(s.floodDir)} toward ${esc(s.floodTo)} · ${flowArrow(s.ebbDir)} ${compass(s.ebbDir)} toward ${esc(s.ebbTo)}</div>
+      <ul class="cur-list">${ev.map((e) => {
+        const dir = e.type === 'flood' ? s.floodDir : s.ebbDir;
+        return `<li class="${esc(e.type)}${e.min < nowMin ? ' past' : ''}"><span class="cur-t">${shortClock(e.min)}</span>${
+          e.type === 'slack' ? 'slack' : `${flowArrow(dir)} ${compass(dir)} ${e.v.toFixed(1)}`}</li>`;
+      }).join('')}</ul></div>`;
+  }).join('')}<p class="fine">Max current in knots · <a href="#currents-explained">what do these mean?</a></p></div>`;
+}
+
+// Footer table: which way flood and ebb run at each current station.
+function renderCurrentsKey(currents) {
+  const el = document.getElementById('currents-explained');
+  if (!el || !currents) return;
+  el.hidden = false;
+  el.querySelector('tbody').innerHTML = currents.map((s) => `<tr>
+    <th>${esc(s.name)}</th>
+    <td>${flowArrow(s.floodDir)} ${s.floodDir}° ${compass(s.floodDir)} toward ${esc(s.floodTo)}</td>
+    <td>${flowArrow(s.ebbDir)} ${s.ebbDir}° ${compass(s.ebbDir)} toward ${esc(s.ebbTo)}</td></tr>`).join('');
 }
 
 function highlightMarine(s) {
@@ -688,6 +754,7 @@ function renderDays(state) {
     const w = weather?.byDay[key];
     const mp = marineForDay(marine, key);
     const windSummary = mp[0]?.text.match(/^[^.]*winds?[^.]*\./i)?.[0];
+    const seasSummary = mp[0] && parseSeaState(mp[0].text).seas;
     const isToday = i === 0;
     return `<section class="day" id="d-${key}">
       <header class="day-head">
@@ -697,7 +764,7 @@ function renderDays(state) {
         </div>
         <div class="day-chips">
           ${w?.day || w?.night ? `<span class="chip">${wxIcon((w.day || w.night).shortForecast, !!w.day, 18)} ${w.day ? `<b>${w.day.temperature}°</b>` : ''}${w.day && w.night ? ' / ' : ''}${w.night ? `${w.night.temperature}°` : ''}</span>` : ''}
-          ${windSummary ? `<span class="chip">⛵ ${esc(windSummary.replace(/\.$/, ''))}</span>` : ''}
+          ${windSummary ? `<span class="chip">⛵ ${esc(windSummary.replace(/\.$/, ''))}${seasSummary ? ` · seas ${esc(seasSummary)}` : ''}</span>` : ''}
           <span class="chip">☀️ ${fmt(sm.sun.sunrise)} – ${fmt(sm.sun.sunset)}</span>
           ${sm.event ? `<span class="chip moon-chip">${moonSvg(sm.illum.fraction, sm.illum.phase, 16)} ${esc(sm.event)}</span>` : ''}
         </div>
@@ -743,6 +810,8 @@ async function refresh() {
   renderNow(state);
   renderAlerts(state, stale);
   renderDays(state);
+  renderSourceMap(state.weather?.cell);
+  renderCurrentsKey(state.currents);
 
   document.getElementById('updated').textContent =
     `Updated ${fmt(new Date())}` + (state.marine ? ` · Marine forecast issued ${state.marine.issued}` : '') +
